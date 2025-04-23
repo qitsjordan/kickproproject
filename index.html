@@ -1,92 +1,103 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <title>KickPro AI Pose Classifier</title>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KickPro Pose Classifier</title>
 
-    <!-- ✅ TensorFlow.js 3.x -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
+  <!-- ✅ Load TensorFlow.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.11.0/dist/tf.min.js"></script>
 
-    <!-- ✅ Updated Teachable Machine Pose version -->
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+  <!-- ✅ Load Teachable Machine Pose library -->
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
 
-    <style>
-      body {
-        font-family: sans-serif;
-        text-align: center;
-        padding: 20px;
-      }
-      canvas {
-        margin-top: 20px;
-        border: 2px solid #2e8b57;
-      }
-      #label-container {
-        margin-top: 20px;
-        font-size: 18px;
-        font-weight: bold;
-        color: #333;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>KickPro AI Pose Classifier</h1>
-    <div id="webcam-container"></div>
-    <div id="label-container">Loading...</div>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    canvas {
+      margin-top: 20px;
+      border: 2px solid #2e8b57;
+    }
+    #label-container {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h1>KickPro AI Pose Classifier</h1>
+  <div id="webcam-container"></div>
+  <div id="label-container">Loading...</div>
 
-    <script type="text/javascript">
-      const URL = "./";
-      let model, webcam, labelContainer, maxPredictions;
+  <script type="text/javascript">
+    const URL = "https://teachablemachine.withgoogle.com/models/XbZpOGeNQ/";
+    let model, webcam, labelContainer, maxPredictions;
 
-      async function init() {
-        try {
-          const modelURL = URL + "model.json";
-          const metadataURL = URL + "metadata.json";
+    async function init() {
+      try {
+        const modelURL = URL + "model.json";
+        const metadataURL = URL + "metadata.json";
 
-          model = await tmPose.load(modelURL, metadataURL);
-          maxPredictions = model.getTotalClasses();
+        model = await tmPose.load(modelURL, metadataURL);
+        maxPredictions = model.getTotalClasses();
 
-          webcam = new tmPose.Webcam(400, 400, false);
-          await webcam.setup({ facingMode: "environment" });
-          await webcam.play();
+        webcam = new tmPose.Webcam(400, 400, false);
+        await webcam.setup({ facingMode: "environment" });
+        await webcam.play();
 
-          document.getElementById("webcam-container").appendChild(webcam.canvas);
-          labelContainer = document.getElementById("label-container");
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
+        labelContainer = document.getElementById("label-container");
 
-          for (let i = 0; i < maxPredictions; i++) {
-            labelContainer.appendChild(document.createElement("div"));
-          }
-
-          window.requestAnimationFrame(loop);
-        } catch (error) {
-          console.error("Init error:", error);
-          document.getElementById("label-container").innerText = "Failed to load model or webcam.";
+        for (let i = 0; i < maxPredictions; i++) {
+          labelContainer.appendChild(document.createElement("div"));
         }
-      }
 
-      async function loop() {
+        window.requestAnimationFrame(loop);
+      } catch (err) {
+        console.error("Initialization error:", err);
+        document.getElementById("label-container").innerText = "Failed to load model or camera.";
+      }
+    }
+
+    async function loop() {
+      try {
         webcam.update();
         await predict();
-        window.requestAnimationFrame(loop);
+      } catch (error) {
+        console.error("Loop error:", error);
+        document.getElementById("label-container").innerText = "Loop crashed.";
       }
+      window.requestAnimationFrame(loop);
+    }
 
-      async function predict() {
-        try {
-          const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
-          const prediction = await model.predict(posenetOutput);
+    async function predict() {
+      try {
+        const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+        const prediction = await model.predict(posenetOutput);
 
-          for (let i = 0; i < maxPredictions; i++) {
-            const classPrediction = prediction[i].className + ": " +
-              Math.round(prediction[i].probability * 100) + "%";
-            labelContainer.childNodes[i].innerHTML = classPrediction;
-          }
-
-        } catch (err) {
-          console.error("Prediction error:", err);
-          document.getElementById("label-container").innerText = "Prediction failed.";
+        for (let i = 0; i < maxPredictions; i++) {
+          const classPrediction =
+            prediction[i].className + ": " +
+            Math.round(prediction[i].probability * 100) + "%";
+          labelContainer.childNodes[i].innerHTML = classPrediction;
         }
-      }
 
-      init();
-    </script>
-  </body>
+        // Optional: send result to MIT App Inventor
+        if (window.AppInventor) {
+          const result = prediction.map(p => `${p.className}: ${Math.round(p.probability * 100)}%`).join(" | ");
+          window.AppInventor.setWebViewString(result);
+        }
+      } catch (err) {
+        console.error("Prediction error:", err);
+        document.getElementById("label-container").innerText = "Prediction failed.";
+      }
+    }
+
+    init();
+  </script>
+</body>
 </html>
