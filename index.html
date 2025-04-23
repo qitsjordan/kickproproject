@@ -1,22 +1,33 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <title>KickPro Pose Classifier</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
-    <style>
-      body { font-family: sans-serif; text-align: center; padding: 20px; }
-      canvas { margin-top: 20px; border: 2px solid #2e8b57; }
-    </style>
-  </head>
-  <body>
-    <h1>KickPro AI Pose Classifier</h1>
-    <div id="label-container"></div>
-    <script type="text/javascript">
-      const URL = "./";
-      let model, webcam, labelContainer, maxPredictions;
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KickPro Pose Classifier</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    canvas {
+      margin-top: 20px;
+      border: 2px solid #2e8b57;
+    }
+  </style>
+</head>
+<body>
+  <h1>KickPro AI Pose Classifier</h1>
+  <div id="webcam-container"></div>
+  <div id="label-container"></div>
 
-      async function init() {
+  <script type="text/javascript">
+    const URL = "./";
+    let model, webcam, labelContainer, maxPredictions;
+
+    async function init() {
+      try {
         const modelURL = URL + "model.json";
         const metadataURL = URL + "metadata.json";
 
@@ -24,36 +35,45 @@
         maxPredictions = model.getTotalClasses();
 
         webcam = new tmPose.Webcam(400, 400, false);
-        await webcam.setup({ facingMode: "environment" }); // back cam
+        await webcam.setup({ facingMode: "environment" });
         await webcam.play();
         window.requestAnimationFrame(loop);
 
-        document.body.appendChild(webcam.canvas);
+        document.getElementById("webcam-container").appendChild(webcam.canvas);
         labelContainer = document.getElementById("label-container");
 
         for (let i = 0; i < maxPredictions; i++) {
           labelContainer.appendChild(document.createElement("div"));
         }
+      } catch (err) {
+        console.error("Initialization error:", err);
+        alert("Error loading model or webcam. Check console for details.");
+      }
+    }
+
+    async function loop() {
+      webcam.update();
+      await predict();
+      window.requestAnimationFrame(loop);
+    }
+
+    async function predict() {
+      const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+      const prediction = await model.predict(posenetOutput);
+
+      for (let i = 0; i < maxPredictions; i++) {
+        const classPrediction =
+          prediction[i].className + ": " + Math.round(prediction[i].probability * 100) + "%";
+        labelContainer.childNodes[i].innerHTML = classPrediction;
       }
 
-      async function loop(timestamp) {
-        webcam.update();
-        await predict();
-        window.requestAnimationFrame(loop);
+      if (window.AppInventor) {
+        const result = prediction.map(p => `${p.className}: ${Math.round(p.probability * 100)}%`).join(" | ");
+        window.AppInventor.setWebViewString(result);
       }
+    }
 
-      async function predict() {
-        const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
-        const prediction = await model.predict(posenetOutput);
-
-        for (let i = 0; i < maxPredictions; i++) {
-          const classPrediction = prediction[i].className + ": " +
-              Math.round(prediction[i].probability * 100) + "%";
-          labelContainer.childNodes[i].innerHTML = classPrediction;
-        }
-      }
-
-      init();
-    </script>
-  </body>
+    init();
+  </script>
+</body>
 </html>
