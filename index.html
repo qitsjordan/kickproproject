@@ -54,7 +54,7 @@
         window.requestAnimationFrame(loop);
       } catch (error) {
         console.error("Init error:", error);
-        labelContainer.innerText = "Model or webcam failed to load.";
+        document.getElementById("label-container").innerText = "Model or webcam failed to load.";
       }
     }
 
@@ -64,7 +64,7 @@
         await predict();
       } catch (error) {
         console.error("Loop error:", error);
-        labelContainer.innerText = "Error during prediction.";
+        document.getElementById("label-container").innerText = "Loop crashed.";
       }
       window.requestAnimationFrame(loop);
     }
@@ -74,18 +74,17 @@
         const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
         const prediction = await model.predict(posenetOutput);
 
-        if (prediction.length === 0) {
-          labelContainer.innerText = "No pose detected";
+        if (!prediction || prediction.length === 0) {
+          document.getElementById("label-container").innerText = "No pose detected";
         } else {
-          for (let i = 0; i < maxPredictions; i++) {
-            const classPrediction = prediction[i].className + ": " + 
-              Math.round(prediction[i].probability * 100) + "%";
-            labelContainer.childNodes[i].innerHTML = classPrediction;
-          }
+          prediction.forEach((p, i) => {
+            const classPrediction = p.className + ": " + Math.round(p.probability * 100) + "%";
+            document.getElementById("label-container").childNodes[i].innerHTML = classPrediction;
+          });
         }
       } catch (err) {
         console.error("Prediction error:", err);
-        labelContainer.innerText = "Prediction failed.";
+        document.getElementById("label-container").innerText = "Prediction failed.";
       }
     }
 
