@@ -3,8 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <title>KickPro Pose Classifier</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
+
+  <!-- ✅ Correct TensorFlow version for tmPose compatibility -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@2.8.5/dist/tf.min.js"></script>
+
+  <!-- ✅ Teachable Machine Pose model -->
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+
   <style>
     body {
       font-family: sans-serif;
@@ -24,7 +29,7 @@
   </style>
 </head>
 <body>
-  <h1>KickPro Pose Classifier</h1>
+  <h1>KickPro AI Pose Classifier</h1>
   <div id="webcam-container"></div>
   <div id="label-container">Loading model...</div>
 
