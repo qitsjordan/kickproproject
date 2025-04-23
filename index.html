@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <title>KickPro Pose Classifier</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.20.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
@@ -15,12 +15,18 @@
       margin-top: 20px;
       border: 2px solid #2e8b57;
     }
+    #label-container {
+      margin-top: 20px;
+      font-size: 18px;
+      font-weight: bold;
+      color: #333;
+    }
   </style>
 </head>
 <body>
-  <h1>KickPro AI Pose Classifier</h1>
+  <h1>KickPro Pose Classifier</h1>
   <div id="webcam-container"></div>
-  <div id="label-container"></div>
+  <div id="label-container">Loading model...</div>
 
   <script type="text/javascript">
     const URL = "./";
@@ -37,7 +43,6 @@
         webcam = new tmPose.Webcam(400, 400, false);
         await webcam.setup({ facingMode: "environment" });
         await webcam.play();
-        window.requestAnimationFrame(loop);
 
         document.getElementById("webcam-container").appendChild(webcam.canvas);
         labelContainer = document.getElementById("label-container");
@@ -45,35 +50,42 @@
         for (let i = 0; i < maxPredictions; i++) {
           labelContainer.appendChild(document.createElement("div"));
         }
-      } catch (err) {
-        console.error("Initialization error:", err);
-        alert("Error loading model or webcam. Check console for details.");
+
+        window.requestAnimationFrame(loop);
+      } catch (error) {
+        console.error("Init error:", error);
+        labelContainer.innerText = "Model or webcam failed to load.";
       }
     }
 
     async function loop() {
-      webcam.update();
-      await predict();
+      try {
+        webcam.update();
+        await predict();
+      } catch (error) {
+        console.error("Loop error:", error);
+        labelContainer.innerText = "Error during prediction.";
+      }
       window.requestAnimationFrame(loop);
     }
 
     async function predict() {
-      const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
-      const prediction = await model.predict(posenetOutput);
+      try {
+        const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+        const prediction = await model.predict(posenetOutput);
 
-    if (prediction.length === 0) {
-     labelContainer.innerHTML = "No pose detected";
-} else {
-  for (let i = 0; i < maxPredictions; i++) {
-    const classPrediction =
-      prediction[i].className + ": " + Math.round(prediction[i].probability * 100) + "%";
-    labelContainer.childNodes[i].innerHTML = classPrediction;
-  }
-}
-
-      if (window.AppInventor) {
-        const result = prediction.map(p => `${p.className}: ${Math.round(p.probability * 100)}%`).join(" | ");
-        window.AppInventor.setWebViewString(result);
+        if (prediction.length === 0) {
+          labelContainer.innerText = "No pose detected";
+        } else {
+          for (let i = 0; i < maxPredictions; i++) {
+            const classPrediction = prediction[i].className + ": " + 
+              Math.round(prediction[i].probability * 100) + "%";
+            labelContainer.childNodes[i].innerHTML = classPrediction;
+          }
+        }
+      } catch (err) {
+        console.error("Prediction error:", err);
+        labelContainer.innerText = "Prediction failed.";
       }
     }
 
