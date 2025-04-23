@@ -1,0 +1,28 @@
+<script type="text/javascript">
+  async function init() {
+    const modelURL = "model.json";
+    const metadataURL = "metadata.json";
+    const model = await tmImage.load(modelURL, metadataURL);
+    const webcam = new tmImage.Webcam(200, 200, true);
+    await webcam.setup();
+    await webcam.play();
+    window.requestAnimationFrame(loop);
+    document.getElementById("webcam-container").appendChild(webcam.canvas);
+  
+    async function loop() {
+      webcam.update();
+      const prediction = await model.predict(webcam.canvas);
+      prediction.sort((a, b) => b.probability - a.probability);
+      const top = prediction[0];
+      document.getElementById("label-container").innerHTML = 
+        `${top.className}: ${(top.probability * 100).toFixed(2)}%`;
+      
+      // Send to MIT App Inventor
+      window.AppInventor && window.AppInventor.setWebViewString(`${top.className}: ${(top.probability * 100).toFixed(2)}%`);
+      
+      window.requestAnimationFrame(loop);
+    }
+  }
+  init();
+  </script>
+  
